@@ -1,17 +1,108 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Square a Number</title>
+  <title>Team Selector</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .panel-label {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .scroll-panel {
+      display: flex;
+      flex-wrap: wrap;
+      overflow-x: auto;
+      border: 2px solid #ccc;
+      padding: 10px;
+      margin-bottom: 40px;
+      gap: 10px;
+      max-height: 200px;
+    }
+
+    .icon-wrapper {
+      flex: 0 0 auto;
+      width: 90px;
+      height: 100px;
+      text-align: center;
+    }
+
+    .icon-wrapper img {
+      width: 100%;
+      height: 80%;
+      object-fit: contain;
+      cursor: pointer;
+    }
+
+    .icon-wrapper.selected {
+      border: 3px solid blue;
+      border-radius: 8px;
+    }
+
+    .icon-label {
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .deselect-btn {
+      margin-bottom: 20px;
+      padding: 8px 16px;
+      background-color: #f44336;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .deselect-btn:hover {
+      background-color: #d32f2f;
+    }
+  </style>
 </head>
 <body>
-    <h1>Square Calculator</h1>
-    <form method="POST">
-        <input type="number" name="number" required>
-        <button type="submit">Submit</button>
-    </form>
 
-    {% if result %}
-        <p>Result: {{ result }}</p>
-    {% endif %}
+  <h1>Select Your Team</h1>
+
+  <button class="deselect-btn" onclick="deselectAll()">Deselect All</button>
+
+  <!-- Squaddies Panel -->
+  <div class="panel-label">Squaddies</div>
+  <div class="scroll-panel" id="squaddies-panel">
+    {% for icon in squaddie_icons %}
+      <div class="icon-wrapper" onclick="toggleSelect(this)">
+        <img src="{{ url_for('static', filename='icons/' + icon.replace(' ', '_') + '.png') }}" alt="{{ icon }}">
+        <div class="icon-label">{{ icon }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Heroes Panel -->
+  <div class="panel-label">Heroes</div>
+  <div class="scroll-panel" id="heroes-panel">
+    {% for icon in hero_icons %}
+      <div class="icon-wrapper" onclick="toggleSelect(this)">
+        <img src="{{ url_for('static', filename='icons/' + icon.replace(' ', '_') + '.png') }}" alt="{{ icon }}">
+        <div class="icon-label">{{ icon }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <script>
+    function toggleSelect(elem) {
+      elem.classList.toggle('selected');
+    }
+
+    function deselectAll() {
+      document.querySelectorAll('.icon-wrapper.selected').forEach(elem => {
+        elem.classList.remove('selected');
+      });
+    }
+  </script>
+
 </body>
 </html>
