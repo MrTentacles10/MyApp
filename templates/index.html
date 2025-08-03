@@ -3,25 +3,31 @@
 <head>
   <title>Team Selector</title>
   <style>
-    body {
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
       font-family: Arial, sans-serif;
-      margin: 20px;
-      height: 100vh;
       display: flex;
       flex-direction: column;
-      justify-content: flex-end;
+    }
+
+    h1 {
+      padding: 16px;
     }
 
     .main-container {
       display: flex;
-      height: 66%;
-      margin-top: auto;
+      flex: 1;
+      padding: 0 20px 20px;
+      box-sizing: border-box;
     }
 
     .left-panels {
       flex: 2;
       display: flex;
       flex-direction: column;
+      justify-content: flex-end;
       gap: 20px;
     }
 
@@ -31,12 +37,16 @@
       margin-left: 20px;
       padding: 10px;
       overflow-y: auto;
+      align-self: flex-end;
     }
 
     .panel-label {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: bold;
       margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .scroll-panel {
@@ -75,13 +85,14 @@
     }
 
     .deselect-btn {
-      margin-bottom: 20px;
+      margin: 0 0 12px 20px;
       padding: 8px 16px;
       background-color: #f44336;
       color: white;
       border: none;
       border-radius: 6px;
       cursor: pointer;
+      align-self: flex-start;
     }
 
     .deselect-btn:hover {
@@ -99,10 +110,13 @@
 
       <!-- Squaddies Panel -->
       <div>
-        <div class="panel-label">Squaddies</div>
+        <div class="panel-label">
+          <span>Squaddies</span>
+          <span id="squaddie-counter">0 / 36</span>
+        </div>
         <div class="scroll-panel" id="squaddies-panel">
           {% for icon in squaddie_icons %}
-            <div class="icon-wrapper" onclick="toggleSelect(this)">
+            <div class="icon-wrapper" onclick="toggleSelect(this, 'squaddies')">
               <img src="{{ url_for('static', filename='icons/' + icon.replace(' ', '_') + '.png') }}" alt="{{ icon }}">
               <div class="icon-label">{{ icon }}</div>
             </div>
@@ -122,6 +136,7 @@
           {% endfor %}
         </div>
       </div>
+
     </div>
 
     <!-- Spells Panel -->
@@ -132,15 +147,27 @@
   </div>
 
   <script>
-    function toggleSelect(elem) {
+    function toggleSelect(elem, panel = null) {
       elem.classList.toggle('selected');
+      if (panel === 'squaddies') {
+        updateSquaddieCounter();
+      }
     }
 
     function deselectAll() {
       document.querySelectorAll('.icon-wrapper.selected').forEach(elem => {
         elem.classList.remove('selected');
       });
+      updateSquaddieCounter();
     }
+
+    function updateSquaddieCounter() {
+      const selected = document.querySelectorAll('#squaddies-panel .icon-wrapper.selected').length;
+      document.getElementById('squaddie-counter').textContent = `${selected} / 36`;
+    }
+
+    // Initial count on page load
+    window.onload = updateSquaddieCounter;
   </script>
 
 </body>
