@@ -147,6 +147,23 @@
   </div>
 
   <script>
+  
+	function updateIconStyles() {
+    // toggle .selected on wrappers based on selectedIcons array
+    document.querySelectorAll('.icon-wrapper').forEach(wrapper => {
+      const iconName = wrapper.querySelector('.icon-label').innerText.trim();
+      if (selectedIcons.some(icon => icon.name === iconName)) {
+        wrapper.classList.add('selected');
+      } else {
+        wrapper.classList.remove('selected');
+      }
+    });
+
+    // keep your existing counter function working
+    if (typeof updateSquaddieCounter === 'function') {
+      updateSquaddieCounter();
+    }
+  }
     function toggleSelect(elem, panel = null) {
       elem.classList.toggle('selected');
       if (panel === 'squaddies') {
