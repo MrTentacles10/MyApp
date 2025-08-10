@@ -1,0 +1,42 @@
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    text-align: center;
+}
+
+.icon-scroll {
+    display: flex;
+    overflow-x: auto;
+    gap: 20px;
+    padding: 20px;
+    border: 1px solid #ccc;
+    margin: 20px 0;
+}
+
+.icon-item {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+}
+
+.icon-item input {
+    display: none;
+}
+
+.icon-item img {
+    width: 80px;
+    height: 80px;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    transition: border-color 0.3s;
+}
+
+.icon-item span {
+    margin-top: 5px;
+}
+
+.icon-item input:checked + img {
+    border-color: #007bff;
+}

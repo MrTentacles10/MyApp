@@ -165,6 +165,38 @@
       const selected = document.querySelectorAll('#squaddies-panel .icon-wrapper.selected').length;
       document.getElementById('squaddie-counter').textContent = `${selected} / 36`;
     }
+	
+	function selectIcon(iconName, panelType) {
+    let existingIndex = selectedIcons.findIndex(icon => icon.name === iconName);
+
+    if (existingIndex === -1) {
+        // Prompt for the level if the icon is being selected
+        let level = prompt(`Enter the level for ${iconName} (1-5):`, "1");
+        if (level === null) return; // Cancelled
+        level = level.trim();
+
+        // Validate level
+        let levelNum = parseInt(level, 10);
+        if (isNaN(levelNum) || levelNum < 1 || levelNum > 5) {
+            alert("Please enter a valid level between 1 and 5.");
+            return;
+        }
+
+        selectedIcons.push({ name: iconName, level: levelNum, panel: panelType });
+    } else {
+        // Deselect if already selected
+        selectedIcons.splice(existingIndex, 1);
+    }
+
+    // Send updated selection to backend
+    fetch('/update_selection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selected_icons: selectedIcons })
+    });
+
+    updateIconStyles();
+}
 
     // Initial count on page load
     window.onload = updateSquaddieCounter;
