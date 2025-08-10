@@ -116,7 +116,7 @@
         </div>
         <div class="scroll-panel" id="squaddies-panel">
           {% for icon in squaddie_icons %}
-            <div class="icon-wrapper" onclick="toggleSelect(this, 'squaddies')">
+            <div class="icon-wrapper" onclick="selectIcon('{{ icon }}', 'squaddies')">
               <img src="{{ url_for('static', filename='icons/' + icon.replace(' ', '_') + '.png') }}" alt="{{ icon }}">
               <div class="icon-label">{{ icon }}</div>
             </div>
@@ -129,7 +129,7 @@
         <div class="panel-label">Heroes</div>
         <div class="scroll-panel" id="heroes-panel">
           {% for icon in hero_icons %}
-            <div class="icon-wrapper" onclick="toggleSelect(this)">
+            <div class="icon-wrapper" onclick="selectIcon('{{ icon }}', 'heroes')">
               <img src="{{ url_for('static', filename='icons/' + icon.replace(' ', '_') + '.png') }}" alt="{{ icon }}">
               <div class="icon-label">{{ icon }}</div>
             </div>
@@ -155,48 +155,73 @@
     }
 
     function deselectAll() {
-      document.querySelectorAll('.icon-wrapper.selected').forEach(elem => {
-        elem.classList.remove('selected');
-      });
-      updateSquaddieCounter();
-    }
+	  selectedIcons = [];
+	  fetch('/update_selection', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ selected_icons: [] })
+	  });
+	  updateIconStyles();
+	}
+
 
     function updateSquaddieCounter() {
       const selected = document.querySelectorAll('#squaddies-panel .icon-wrapper.selected').length;
       document.getElementById('squaddie-counter').textContent = `${selected} / 36`;
     }
 	
-	function selectIcon(iconName, panelType) {
-    let existingIndex = selectedIcons.findIndex(icon => icon.name === iconName);
+	let selectedIcons = [];
 
-    if (existingIndex === -1) {
-        // Prompt for the level if the icon is being selected
-        let level = prompt(`Enter the level for ${iconName} (1-5):`, "1");
-        if (level === null) return; // Cancelled
-        level = level.trim();
-
-        // Validate level
-        let levelNum = parseInt(level, 10);
-        if (isNaN(levelNum) || levelNum < 1 || levelNum > 5) {
-            alert("Please enter a valid level between 1 and 5.");
-            return;
-        }
-
-        selectedIcons.push({ name: iconName, level: levelNum, panel: panelType });
-    } else {
-        // Deselect if already selected
-        selectedIcons.splice(existingIndex, 1);
-    }
-
-    // Send updated selection to backend
-    fetch('/update_selection', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ selected_icons: selectedIcons })
+	function updateIconStyles() {
+    // toggle .selected on wrappers based on selectedIcons array
+    document.querySelectorAll('.icon-wrapper').forEach(wrapper => {
+      const iconName = wrapper.querySelector('.icon-label').innerText.trim();
+      if (selectedIcons.some(icon => icon.name === iconName)) {
+        wrapper.classList.add('selected');
+      } else {
+        wrapper.classList.remove('selected');
+      }
     });
 
-    updateIconStyles();
-}
+    // keep your existing counter function working
+    if (typeof updateSquaddieCounter === 'function') {
+      updateSquaddieCounter();
+    }
+  }
+	
+	function selectIcon(iconName, panelType) {
+	  let existingIndex = selectedIcons.findIndex(icon => icon.name === iconName);
+
+	  if (existingIndex === -1) {
+		// If it's a squaddie, ask for level (1-5)
+		if (panelType === 'squaddies') {
+		  let level = prompt(`Enter the level for ${iconName} (1-5):`, "1");
+		  if (level === null) return; // Cancelled
+		  level = level.trim();
+		  let levelNum = parseInt(level, 10);
+		  if (isNaN(levelNum) || levelNum < 1 || levelNum > 5) {
+			alert("Please enter a valid number between 1 and 5.");
+			return;
+		  }
+		  selectedIcons.push({ name: iconName, level: levelNum, panel: panelType });
+		} else {
+		  selectedIcons.push({ name: iconName, panel: panelType });
+		}
+	  } else {
+		// Remove if already selected
+		selectedIcons.splice(existingIndex, 1);
+	  }
+
+	  // Send updated selection to backend
+	  fetch('/update_selection', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ selected_icons: selectedIcons })
+	  });
+
+	  updateIconStyles();
+	}
+
 
     // Initial count on page load
     window.onload = updateSquaddieCounter;
