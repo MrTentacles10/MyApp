@@ -40,3 +40,20 @@ body {
 .icon-item input:checked + img {
     border-color: #007bff;
 }
+
+/* Overlay number display for icon levels/upgrades */
+.icon-wrapper {
+    position: relative; /* Needed for overlay positioning */
+}
+
+.level-overlay {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 10px;
+    padding: 1px 3px;
+    border-radius: 3px;
+    pointer-events: none; /* So clicking still hits the icon */
+}
