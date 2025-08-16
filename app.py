@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import os
 
 app = Flask(__name__)
@@ -45,11 +45,30 @@ def update_selection():
             'level': level,
             'panel': panel
         })
+        
+        total_squaddie_levels = sum(icon['level'] for icon in valid_selection if icon['panel'] == 'squaddies')
+        hero_count = len([icon for icon in valid_selection if icon['panel'] == 'heroes'])
+    
+        # Example "score" formula
+        score = total_squaddie_levels * 10 + hero_count * 50
+    
+        print("Received selection:", valid_selection)
+        print("Total squaddie levels:", total_squaddie_levels)
+        print("Hero count:", hero_count)
+        print("Score:", score)
+    
+        # Return results to frontend
+        return jsonify({
+            "message": "Selections processed successfully",
+            "total_squaddie_levels": total_squaddie_levels,
+            "hero_count": hero_count,
+            "score": score
+        })
 
     # You can now use `valid_selection` in your backend logic
-    print("Received selection:", valid_selection)
+    #print("Received selection:", valid_selection)
 
-    return '', 204
+    #return '', 204
 
 
 if __name__ == "__main__":
