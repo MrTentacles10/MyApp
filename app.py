@@ -40,22 +40,27 @@ def update_selection():
             level = icon.get('level')
             if isinstance(level, int) and 1 <= level <= 5:
                 valid_selection.append({'name': name, 'panel': panel, 'level': level})
-            # else: skip bad squaddie entries
-        elif panel == 'heroes':
-            # Your current UI doesn't send hero levels yet—accept as-is
-            valid_selection.append({'name': name, 'panel': panel})
 
-    # ----- do calculations AFTER the loop -----
+        elif panel == 'heroes':
+            powers = icon.get('powers')
+            traits = icon.get('traits')
+            turbo  = icon.get('turbo')
+            if (isinstance(powers, int) and 1 <= powers <= 5 and
+                isinstance(traits, int) and 1 <= traits <= 5 and
+                isinstance(turbo,  int) and 1 <= turbo  <= 3):
+                valid_selection.append({
+                    'name': name, 'panel': panel,
+                    'powers': powers, 'traits': traits, 'turbo': turbo
+                })
+
+    # Keep your current scoreboard fields working
     total_squaddie_levels = sum(i['level'] for i in valid_selection if i['panel'] == 'squaddies')
     hero_count = sum(1 for i in valid_selection if i['panel'] == 'heroes')
-    score = total_squaddie_levels * 10 + hero_count * 50  # example score
+
+    # Example score (unchanged) — you can revise later to include hero upgrades
+    score = total_squaddie_levels * 10 + hero_count * 50
 
     print("Received selection:", valid_selection)
-    print("Total squaddie levels:", total_squaddie_levels)
-    print("Hero count:", hero_count)
-    print("Score:", score)
-
-    # Return JSON (your frontend calls response.json())
     return jsonify({
         "message": "Selections processed successfully",
         "total_squaddie_levels": total_squaddie_levels,
