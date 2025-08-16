@@ -220,6 +220,8 @@
 		// Remove if already selected
 		selectedIcons.splice(existingIndex, 1);
 	  }
+	  
+	  console.log("About to POST selectedIcons:", JSON.stringify(selectedIcons));
 
 	  // Send updated selection to backend! yay :D
 	  fetch('/update_selection', {
