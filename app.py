@@ -26,49 +26,43 @@ def process():
 
 @app.route('/update_selection', methods=['POST'])
 def update_selection():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     selected_icons = data.get('selected_icons', [])
 
-    # Ensure each entry has name and level
     valid_selection = []
     for icon in selected_icons:
-        name = icon.get('name')
-        level = icon.get('level')
+        name  = icon.get('name')
         panel = icon.get('panel')
+        if not name or not panel:
+            continue
 
-        # Validate: level must be int between 1 and 5
-        if not isinstance(level, int) or level < 1 or level > 5:
-            continue  # Skip invalid entries
+        if panel == 'squaddies':
+            level = icon.get('level')
+            if isinstance(level, int) and 1 <= level <= 5:
+                valid_selection.append({'name': name, 'panel': panel, 'level': level})
+            # else: skip bad squaddie entries
+        elif panel == 'heroes':
+            # Your current UI doesn't send hero levels yet—accept as-is
+            valid_selection.append({'name': name, 'panel': panel})
 
-        valid_selection.append({
-            'name': name,
-            'level': level,
-            'panel': panel
-        })
-        
-        total_squaddie_levels = sum(icon['level'] for icon in valid_selection if icon['panel'] == 'squaddies')
-        hero_count = len([icon for icon in valid_selection if icon['panel'] == 'heroes'])
-    
-        # Example "score" formula
-        score = total_squaddie_levels * 10 + hero_count * 50
-    
-        print("Received selection:", valid_selection)
-        print("Total squaddie levels:", total_squaddie_levels)
-        print("Hero count:", hero_count)
-        print("Score:", score)
-    
-        # Return results to frontend
-        return jsonify({
-            "message": "Selections processed successfully",
-            "total_squaddie_levels": total_squaddie_levels,
-            "hero_count": hero_count,
-            "score": score
-        })
+    # ----- do calculations AFTER the loop -----
+    total_squaddie_levels = sum(i['level'] for i in valid_selection if i['panel'] == 'squaddies')
+    hero_count = sum(1 for i in valid_selection if i['panel'] == 'heroes')
+    score = total_squaddie_levels * 10 + hero_count * 50  # example score
 
-    # You can now use `valid_selection` in your backend logic
-    #print("Received selection:", valid_selection)
+    print("Received selection:", valid_selection)
+    print("Total squaddie levels:", total_squaddie_levels)
+    print("Hero count:", hero_count)
+    print("Score:", score)
 
-    #return '', 204
+    # Return JSON (your frontend calls response.json())
+    return jsonify({
+        "message": "Selections processed successfully",
+        "total_squaddie_levels": total_squaddie_levels,
+        "hero_count": hero_count,
+        "score": score
+    }), 200
+
 
 
 if __name__ == "__main__":
