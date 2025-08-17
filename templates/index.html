@@ -98,6 +98,25 @@
     .deselect-btn:hover {
       background-color: #d32f2f;
     }
+	
+	/* Overlay badge on each icon */
+	.icon-wrapper {            /* add if not already present */
+	  position: relative;      /* needed so the badge positions relative to the icon */
+	}
+
+	.level-overlay {
+	  position: absolute;
+	  bottom: 2px;
+	  right: 2px;
+	  background: rgba(0,0,0,0.7);
+	  color: #fff;
+	  font-size: 10px;
+	  line-height: 1;
+	  padding: 2px 4px;
+	  border-radius: 3px;
+	  pointer-events: none;    /* clicking still hits the icon */
+	}
+
   </style>
 </head>
 <body>
@@ -119,6 +138,7 @@
             <div class="icon-wrapper" onclick="selectIcon('{{ icon }}', 'squaddies')">
               <img src="{{ url_for('static', filename='icons/' + icon.replace(' ', '_') + '.png') }}" alt="{{ icon }}">
               <div class="icon-label">{{ icon }}</div>
+			  <div class="level-overlay"></div>
             </div>
           {% endfor %}
         </div>
@@ -132,6 +152,7 @@
             <div class="icon-wrapper" onclick="selectIcon('{{ icon }}', 'heroes')">
               <img src="{{ url_for('static', filename='icons/' + icon.replace(' ', '_') + '.png') }}" alt="{{ icon }}">
               <div class="icon-label">{{ icon }}</div>
+			  <div class="level-overlay"></div>
             </div>
           {% endfor %}
         </div>
@@ -165,12 +186,25 @@
 
     function deselectAll() {
 	  selectedIcons = [];
+
 	  fetch('/update_selection', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ selected_icons: [] })
-	  });
-	  updateIconStyles();
+	  })
+	  .then(res => res.json())
+	  .then(data => {
+		document.getElementById("scoreboard").innerHTML = `
+		  Total Squaddie Levels: ${data.total_squaddie_levels} <br>
+		  Hero Count: ${data.hero_count} <br>
+		  Score: ${data.score}
+		`;
+	  })
+	  .catch(err => console.error("Error updating selection:", err));
+
+	  document.querySelectorAll('.icon-wrapper.selected').forEach(w => w.classList.remove('selected'));
+	  document.querySelectorAll('.level-overlay').forEach(b => b.textContent = "");
+	  updateSquaddieCounter();
 	}
 
 
@@ -182,21 +216,34 @@
 	
 
 	function updateIconStyles() {
-    // toggle .selected on wrappers based on selectedIcons array
-    document.querySelectorAll('.icon-wrapper').forEach(wrapper => {
-      const iconName = wrapper.querySelector('.icon-label').innerText.trim();
-      if (selectedIcons.some(icon => icon.name === iconName)) {
-        wrapper.classList.add('selected');
-      } else {
-        wrapper.classList.remove('selected');
-      }
-    });
+	  document.querySelectorAll('.icon-wrapper').forEach(wrapper => {
+		const labelElem = wrapper.querySelector('.icon-label');
+		if (!labelElem) return;
+		const iconName = labelElem.innerText.trim();
 
-    // keep your existing counter function working
-    if (typeof updateSquaddieCounter === 'function') {
-      updateSquaddieCounter();
-    }
-  }
+		const entry = selectedIcons.find(icon => icon.name === iconName);
+		if (entry) {
+		  wrapper.classList.add('selected');
+		  // ✨ restore badge from saved data
+		  if (entry.panel === 'squaddies' && 'level' in entry) {
+			const badge = wrapper.querySelector('.level-overlay');
+			if (badge) badge.textContent = String(entry.level);
+		  } else if (entry.panel === 'heroes' && 'powers' in entry && 'traits' in entry && 'turbo' in entry) {
+			const badge = wrapper.querySelector('.level-overlay');
+			if (badge) badge.textContent = `${entry.powers}/${entry.traits}/${entry.turbo}`;
+		  }
+		} else {
+		  wrapper.classList.remove('selected');
+		  const badge = wrapper.querySelector('.level-overlay');
+		  if (badge) badge.textContent = "";
+		}
+	  });
+
+	  if (typeof updateSquaddieCounter === 'function') {
+		updateSquaddieCounter();
+	  }
+	}
+
    function promptBoundedInt(label, min, max, defVal="1") {
      let v = prompt(`Enter ${label} (${min}-${max}):`, defVal);
 	 if (v === null) return null;           // user cancelled
@@ -208,12 +255,11 @@
 	 }
 	 return n;
    }
-	
-	function selectIcon(iconName, panelType) {
+   
+   function selectIcon(iconName, panelType) {
 	  let existingIndex = selectedIcons.findIndex(icon => icon.name === iconName);
 
 	  if (existingIndex === -1) {
-		// If it's a squaddie, ask for level (1-5)
 		if (panelType === 'squaddies') {
 		  let level = prompt(`Enter the level for ${iconName} (1-5):`, "1");
 		  if (level === null) return; // Cancelled
@@ -224,37 +270,42 @@
 			return;
 		  }
 		  selectedIcons.push({ name: iconName, level: levelNum, panel: panelType });
+		  updateOverlay(iconName, String(levelNum)); // ✨ show "4" etc.
+
 		} else if (panelType === 'heroes') {
-		  const powers = promptBoundedInt(`Powers for ${iconName}`, 1, 5, "1");
-		  if (powers === null) return;
+		  // Prompt three upgrades with bounds: Powers 1–5, Traits 1–5, Turbo 1–3
+		  const ask = (label, min, max, defVal="1") => {
+			let v = prompt(`Enter ${label} for ${iconName} (${min}-${max}):`, defVal);
+			if (v === null) return null;
+			v = v.trim();
+			const n = parseInt(v, 10);
+			if (isNaN(n) || n < min || n > max) {
+			  alert(`Please enter a valid number between ${min} and ${max}.`);
+			  return null;
+			}
+			return n;
+		  };
 
-		  const traits = promptBoundedInt(`Traits for ${iconName}`, 1, 5, "1");
-		  if (traits === null) return;
+		  const powers = ask("Powers", 1, 5, "1"); if (powers === null) return;
+		  const traits = ask("Traits", 1, 5, "1"); if (traits === null) return;
+		  const turbo  = ask("Turbo",  1, 3, "1"); if (turbo  === null) return;
 
-		  const turbo  = promptBoundedInt(`Turbo for ${iconName}`, 1, 3, "1");
-		  if (turbo === null) return;
-
-		  selectedIcons.push({
-			name: iconName,
-			panel: panelType,
-			powers: powers,
-			traits: traits,
-			turbo: turbo
-		  });
-		  
+		  selectedIcons.push({ name: iconName, panel: panelType, powers, traits, turbo });
+		  updateOverlay(iconName, `${powers}/${traits}/${turbo}`); // ✨ show "3/5/2"
 		} else {
-		  // fallback for other panel types
+		  // Other panels (future)
 		  selectedIcons.push({ name: iconName, panel: panelType });
-		}  
-		
+		  updateOverlay(iconName, ""); // no badge
+		}
+
 	  } else {
-		// Remove if already selected
+		// Deselect if already selected
 		selectedIcons.splice(existingIndex, 1);
+		updateOverlay(iconName, ""); // ✨ clear badge
 	  }
-	  
+
 	  console.log("About to POST selectedIcons:", JSON.stringify(selectedIcons));
 
-	  // Send updated selection to backend! yay :D
 	  fetch('/update_selection', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
@@ -262,18 +313,16 @@
 	  })
 	  .then(response => response.json())
 	  .then(data => {
-	    // Update scoreboard
-	    document.getElementById("scoreboard").innerHTML = `
+		document.getElementById("scoreboard").innerHTML = `
 		  Total Squaddie Levels: ${data.total_squaddie_levels} <br>
 		  Hero Count: ${data.hero_count} <br>
 		  Score: ${data.score}
-	    `;
+		`;
 	  })
-	.catch(error => console.error("Error updating selection:", error));
+	  .catch(error => console.error("Error updating selection:", error));
 
 	  updateIconStyles();
 	}
-
 
     // Initial count on page load
     window.onload = updateSquaddieCounter;
