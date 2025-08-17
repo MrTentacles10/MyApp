@@ -38,30 +38,57 @@ def update_selection():
 
         if panel == 'squaddies':
             level = icon.get('level')
+            # Squaddie: must have level 1–5
             if isinstance(level, int) and 1 <= level <= 5:
                 valid_selection.append({'name': name, 'panel': panel, 'level': level})
-            # else: skip bad squaddie entries
-        elif panel == 'heroes':
-            # Your current UI doesn't send hero levels yet—accept as-is
-            valid_selection.append({'name': name, 'panel': panel})
 
-    # ----- do calculations AFTER the loop -----
+        elif panel == 'heroes':
+            # Hero: must have powers(1–5), traits(1–5), turbo(1–3)
+            powers = icon.get('powers')
+            traits = icon.get('traits')
+            turbo  = icon.get('turbo')
+            if (isinstance(powers, int) and 1 <= powers <= 5 and
+                isinstance(traits, int) and 1 <= traits <= 5 and
+                isinstance(turbo,  int) and 1 <= turbo  <= 3):
+                valid_selection.append({
+                    'name': name, 'panel': panel,
+                    'powers': powers, 'traits': traits, 'turbo': turbo
+                })
+            # else: invalid hero entry -> skip
+        # else: unknown panel -> skip
+
+    # ---- Calculations (keep existing fields so UI keeps working) ----
     total_squaddie_levels = sum(i['level'] for i in valid_selection if i['panel'] == 'squaddies')
     hero_count = sum(1 for i in valid_selection if i['panel'] == 'heroes')
-    score = total_squaddie_levels * 10 + hero_count * 50  # example score
 
+    # Optional extra totals (returned but your UI doesn’t need to use them yet)
+    total_hero_powers = sum(i['powers'] for i in valid_selection if i['panel'] == 'heroes')
+    total_hero_traits = sum(i['traits'] for i in valid_selection if i['panel'] == 'heroes')
+    total_hero_turbo  = sum(i['turbo']  for i in valid_selection if i['panel'] == 'heroes')
+    hero_upgrades_total = total_hero_powers + total_hero_traits + total_hero_turbo
+
+    # Keep your current score formula unchanged (so no UI changes needed)
+    score = total_squaddie_levels * 10 + hero_count * 50
+
+    # Debug logs
     print("Received selection:", valid_selection)
     print("Total squaddie levels:", total_squaddie_levels)
     print("Hero count:", hero_count)
-    print("Score:", score)
+    print("Hero upgrades (P/T/T):", total_hero_powers, total_hero_traits, total_hero_turbo)
 
-    # Return JSON (your frontend calls response.json())
     return jsonify({
         "message": "Selections processed successfully",
+        # existing fields (your UI reads these today)
         "total_squaddie_levels": total_squaddie_levels,
         "hero_count": hero_count,
-        "score": score
+        "score": score,
+        # extra fields you can use later without changing the backend again
+        "total_hero_powers": total_hero_powers,
+        "total_hero_traits": total_hero_traits,
+        "total_hero_turbo": total_hero_turbo,
+        "hero_upgrades_total": hero_upgrades_total
     }), 200
+
 
 
 
