@@ -1,157 +1,104 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Team Selector</title>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
+<script>
+  let selectedIcons = [];
+
+  function promptLevel(label, min, max, defaultVal="1") {
+    let v = prompt(`Enter ${label} (${min}-${max}):`, defaultVal);
+    if (v === null) return null;              // user cancelled
+    v = v.trim();
+    const n = parseInt(v, 10);
+    if (isNaN(n) || n < min || n > max) {
+      alert(`Please enter a valid number between ${min} and ${max}.`);
+      return null;
+    }
+    return n;
+  }
+
+  function selectIcon(iconName, panelType) {
+    let existingIndex = selectedIcons.findIndex(icon => icon.name === iconName);
+
+    if (existingIndex === -1) {
+      if (panelType === 'squaddies') {
+        // Squaddie: single level 1–5
+        let levelNum = promptLevel(`the level for ${iconName}`, 1, 5, "1");
+        if (levelNum === null) return; // cancelled or invalid
+        selectedIcons.push({ name: iconName, level: levelNum, panel: panelType });
+
+      } else if (panelType === 'heroes') {
+        // Hero: three upgrades
+        const powers = promptLevel(`Powers for ${iconName}`, 1, 5, "1");
+        if (powers === null) return;
+
+        const traits = promptLevel(`Traits for ${iconName}`, 1, 5, "1");
+        if (traits === null) return;
+
+        const turbo  = promptLevel(`Turbo for ${iconName}`, 1, 3, "1");
+        if (turbo === null) return;
+
+        selectedIcons.push({ 
+          name: iconName, 
+          panel: panelType, 
+          powers: powers, 
+          traits: traits, 
+          turbo: turbo 
+        });
+      } else {
+        // Unknown panel (just in case)
+        return;
+      }
+
+    } else {
+      // Deselect if already selected
+      selectedIcons.splice(existingIndex, 1);
     }
 
-    h1 {
-      padding: 16px;
-    }
+    console.log("About to POST selectedIcons:", JSON.stringify(selectedIcons));
 
-    .main-container {
-      display: flex;
-      flex: 1;
-      padding: 0 20px 20px;
-      box-sizing: border-box;
-    }
+    // Send updated selection to backend
+    fetch('/update_selection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selected_icons: selectedIcons })
+    })
+    .then(response => response.json())
+    .then(data => {
+      // Update scoreboard (your backend still returns these keys)
+      document.getElementById("scoreboard").innerHTML = `
+        Total Squaddie Levels: ${data.total_squaddie_levels} <br>
+        Hero Count: ${data.hero_count} <br>
+        Score: ${data.score}
+      `;
+    })
+    .catch(error => console.error("Error updating selection:", error));
 
-    .left-panels {
-      flex: 2;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      gap: 20px;
-    }
+    updateIconStyles();
+  }
 
-    .right-panel {
-      flex: 1;
-      border: 2px solid #ccc;
-      margin-left: 20px;
-      padding: 10px;
-      overflow-y: auto;
-      align-self: flex-end;
-    }
+  function toggleSelect(elem, panel = null) {
+    elem.classList.toggle('selected');
+    if (panel === 'squaddies') updateSquaddieCounter();
+  }
 
-    .panel-label {
-      font-size: 18px;
-      font-weight: bold;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+  function deselectAll() {
+    selectedIcons = [];
+    fetch('/update_selection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selected_icons: [] })
+    })
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("scoreboard").innerHTML = `
+        Total Squaddie Levels: ${data.total_squaddie_levels} <br>
+        Hero Count: ${data.hero_count} <br>
+        Score: ${data.score}
+      `;
+    })
+    .catch(err => console.error("Error updating selection:", err));
 
-    .scroll-panel {
-      display: flex;
-      flex-wrap: wrap;
-      overflow-x: auto;
-      border: 2px solid #ccc;
-      padding: 10px;
-      gap: 10px;
-      max-height: 180px;
-      background-color: #f9f9f9;
-    }
+    updateIconStyles();
+  }
 
-    .icon-wrapper {
-      flex: 0 0 auto;
-      width: 80px;
-      height: 90px;
-      text-align: center;
-    }
-
-    .icon-wrapper img {
-      width: 100%;
-      height: 75%;
-      object-fit: contain;
-      cursor: pointer;
-    }
-
-    .icon-wrapper.selected {
-      border: 3px solid blue;
-      border-radius: 8px;
-    }
-
-    .icon-label {
-      font-size: 12px;
-      margin-top: 4px;
-    }
-
-    .deselect-btn {
-      margin: 0 0 12px 20px;
-      padding: 8px 16px;
-      background-color: #f44336;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      align-self: flex-start;
-    }
-
-    .deselect-btn:hover {
-      background-color: #d32f2f;
-    }
-  </style>
-</head>
-<body>
-
-  <h1>Select Your Team</h1>
-  <button class="deselect-btn" onclick="deselectAll()">Deselect All</button>
-
-  <div class="main-container">
-    <div class="left-panels">
-
-      <!-- Squaddies Panel -->
-		<div>
-		  <div class="panel-label">
-			<span>Squaddies</span>
-			<span id="squaddie-counter">0 / 36</span>
-		  </div>
-		  <div class="scroll-panel" id="squaddies-panel">
-			{% for icon in squaddie_icons %}
-			  <div class="icon-wrapper" onclick="selectIcon('{{ icon|escapejs }}', 'squaddies')">
-				<img src="{{ url_for('static', filename='icons/' + icon.replace(' ', '_') + '.png') }}" alt="{{ icon }}">
-				<div class="icon-label">{{ icon }}</div>
-				<div class="level-overlay"></div>
-			  </div>
-			{% endfor %}
-		  </div>
-		</div>
-
-      <!-- Heroes Panel -->
-      <div>
-        <div class="panel-label">Heroes</div>
-        <div class="scroll-panel" id="heroes-panel">
-          {% for icon in hero_icons %}
-            <div class="icon-wrapper" onclick="selectIcon('{{ icon }}', 'heroes')">
-              <img src="{{ url_for('static', filename='icons/' + icon.replace(' ', '_') + '.png') }}" alt="{{ icon }}">
-              <div class="icon-label">{{ icon }}</div><div class="level-overlay"></div>
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Spells Panel -->
-    <div class="right-panel">
-      <div class="panel-label">Spells</div>
-      <p>(Spell icons or content will go here.)</p>
-    </div>
-  </div>
-
-  <script>
-	let selectedIcons = [];
-  
-	function updateIconStyles() {
-    // toggle .selected on wrappers based on selectedIcons array
+  function updateIconStyles() {
     document.querySelectorAll('.icon-wrapper').forEach(wrapper => {
       const iconName = wrapper.querySelector('.icon-label').innerText.trim();
       if (selectedIcons.some(icon => icon.name === iconName)) {
@@ -160,87 +107,13 @@
         wrapper.classList.remove('selected');
       }
     });
-
-    // keep your existing counter function working
-    if (typeof updateSquaddieCounter === 'function') {
-      updateSquaddieCounter();
-    }
+    if (typeof updateSquaddieCounter === 'function') updateSquaddieCounter();
   }
-    function toggleSelect(elem, panel = null) {
-      elem.classList.toggle('selected');
-      if (panel === 'squaddies') {
-        updateSquaddieCounter();
-      }
-    }
 
-    function deselectAll() {
-      document.querySelectorAll('.icon-wrapper.selected').forEach(elem => {
-        elem.classList.remove('selected');
-      });
-      updateSquaddieCounter();
-    }
-
-    function updateSquaddieCounter() {
-      const selected = document.querySelectorAll('#squaddies-panel .icon-wrapper.selected').length;
-      document.getElementById('squaddie-counter').textContent = `${selected} / 36`;
-    }
-	
-	function selectIcon(iconName, panelType) {
-	  let existingIndex = selectedIcons.findIndex(icon => icon.name === iconName);
-
-	  if (existingIndex === -1) {
-		if (panelType === 'squaddies') {
-		  let level = prompt(`Enter the level for ${iconName} (1-5):`, "1");
-		  if (!validateLevel(level)) return;
-		  selectedIcons.push({ name: iconName, level: parseInt(level), panel: panelType });
-		  updateOverlay(iconName, `${level}`);
-		} else if (panelType === 'heroes') {
-		  let power = prompt(`Enter Power Upgrade for ${iconName} (1-5):`, "1");
-		  if (!validateLevel(power)) return;
-		  let traits = prompt(`Enter Traits Upgrade for ${iconName} (1-5):`, "1");
-		  if (!validateLevel(traits)) return;
-		  let turbo = prompt(`Enter Turbo Upgrade for ${iconName} (1-5):`, "1");
-		  if (!validateLevel(turbo)) return;
-		  selectedIcons.push({ name: iconName, power: parseInt(power), traits: parseInt(traits), turbo: parseInt(turbo), panel: panelType });
-		  updateOverlay(iconName, `${power}/${traits}/${turbo}`);
-		}
-	  } else {
-		selectedIcons.splice(existingIndex, 1);
-		updateOverlay(iconName, "");
-	  }
-
-	  fetch('/update_selection', {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ selected_icons: selectedIcons })
-	  });
-
-	  updateIconStyles();
-	}
-
-function validateLevel(level) {
-  if (level === null) return false;
-  level = level.trim();
-  let num = parseInt(level, 10);
-  if (isNaN(num) || num < 1 || num > 5) {
-    alert("Please enter a valid number between 1 and 5.");
-    return false;
+  function updateSquaddieCounter() {
+    const selected = document.querySelectorAll('#squaddies-panel .icon-wrapper.selected').length;
+    document.getElementById('squaddie-counter').textContent = `${selected} / 36`;
   }
-  return true;
-}
 
-function updateOverlay(iconName, text) {
-  document.querySelectorAll('.icon-wrapper').forEach(wrapper => {
-    const label = wrapper.querySelector('.icon-label').innerText.trim();
-    if (label === iconName) {
-      wrapper.querySelector('.level-overlay').innerText = text;
-    }
-  });
-}
-
-    // Initial count on page load
-    window.onload = updateSquaddieCounter;
-  </script>
-
-</body>
-</html>
+  window.onload = updateSquaddieCounter;
+</script>
