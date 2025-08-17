@@ -197,6 +197,17 @@
       updateSquaddieCounter();
     }
   }
+   function promptBoundedInt(label, min, max, defVal="1") {
+     let v = prompt(`Enter ${label} (${min}-${max}):`, defVal);
+	 if (v === null) return null;           // user cancelled
+	 v = v.trim();
+	 const n = parseInt(v, 10);
+	 if (isNaN(n) || n < min || n > max) {
+	   alert(`Please enter a valid number between ${min} and ${max}.`);
+	   return null;
+	 }
+	 return n;
+   }
 	
 	function selectIcon(iconName, panelType) {
 	  let existingIndex = selectedIcons.findIndex(icon => icon.name === iconName);
@@ -213,9 +224,29 @@
 			return;
 		  }
 		  selectedIcons.push({ name: iconName, level: levelNum, panel: panelType });
+		} else if (panelType === 'heroes') {
+		  const powers = promptBoundedInt(`Powers for ${iconName}`, 1, 5, "1");
+		  if (powers === null) return;
+
+		  const traits = promptBoundedInt(`Traits for ${iconName}`, 1, 5, "1");
+		  if (traits === null) return;
+
+		  const turbo  = promptBoundedInt(`Turbo for ${iconName}`, 1, 3, "1");
+		  if (turbo === null) return;
+
+		  selectedIcons.push({
+			name: iconName,
+			panel: panelType,
+			powers: powers,
+			traits: traits,
+			turbo: turbo
+		  });
+		  
 		} else {
+		  // fallback for other panel types
 		  selectedIcons.push({ name: iconName, panel: panelType });
-		}
+		}  
+		
 	  } else {
 		// Remove if already selected
 		selectedIcons.splice(existingIndex, 1);
