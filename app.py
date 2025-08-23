@@ -1,6 +1,11 @@
 from flask import Flask, render_template, request, jsonify
 import os
 
+# My Script Imports
+from selection_validation import validate_selected_icons
+from calculations import compute_metrics
+import plotly.express as px
+
 app = Flask(__name__)
 
 @app.route("/", methods=["GET", "POST"])
@@ -28,67 +33,56 @@ def process():
 def update_selection():
     data = request.get_json(silent=True) or {}
     selected_icons = data.get('selected_icons', [])
-
-    valid_selection = []
-    for icon in selected_icons:
-        name  = icon.get('name')
-        panel = icon.get('panel')
-        if not name or not panel:
-            continue
-
-        if panel == 'squaddies':
-            level = icon.get('level')
-            # Squaddie: must have level 1–5
-            if isinstance(level, int) and 1 <= level <= 5:
-                valid_selection.append({'name': name, 'panel': panel, 'level': level})
-
-        elif panel == 'heroes':
-            # Hero: must have powers(1–5), traits(1–5), turbo(1–3)
-            powers = icon.get('powers')
-            traits = icon.get('traits')
-            turbo  = icon.get('turbo')
-            if (isinstance(powers, int) and 1 <= powers <= 5 and
-                isinstance(traits, int) and 1 <= traits <= 5 and
-                isinstance(turbo,  int) and 1 <= turbo  <= 3):
-                valid_selection.append({
-                    'name': name, 'panel': panel,
-                    'powers': powers, 'traits': traits, 'turbo': turbo
-                })
-            # else: invalid hero entry -> skip
-        # else: unknown panel -> skip
-
-    # ---- Calculations (keep existing fields so UI keeps working) ----
-    total_squaddie_levels = sum(i['level'] for i in valid_selection if i['panel'] == 'squaddies')
-    hero_count = sum(1 for i in valid_selection if i['panel'] == 'heroes')
-
-    # Optional extra totals (returned but your UI doesn’t need to use them yet)
-    total_hero_powers = sum(i['powers'] for i in valid_selection if i['panel'] == 'heroes')
-    total_hero_traits = sum(i['traits'] for i in valid_selection if i['panel'] == 'heroes')
-    total_hero_turbo  = sum(i['turbo']  for i in valid_selection if i['panel'] == 'heroes')
-    hero_upgrades_total = total_hero_powers + total_hero_traits + total_hero_turbo
-
-    # Keep your current score formula unchanged (so no UI changes needed)
-    score = total_squaddie_levels * 10 + hero_count * 50
+    
+    # Validate selections 
+    valid_selection = validate_selected_icons(selected_icons)
+    
+    # Compute metrics
+    metrics = compute_metrics(valid_selection)
 
     # Debug logs
     print("Received selection:", valid_selection)
-    print("Total squaddie levels:", total_squaddie_levels)
-    print("Hero count:", hero_count)
-    print("Hero upgrades (P/T/T):", total_hero_powers, total_hero_traits, total_hero_turbo)
+    print("Metrics:", metrics)
+
 
     return jsonify({
         "message": "Selections processed successfully",
-        # existing fields (your UI reads these today)
-        "total_squaddie_levels": total_squaddie_levels,
-        "hero_count": hero_count,
-        "score": score,
-        # extra fields you can use later without changing the backend again
-        "total_hero_powers": total_hero_powers,
-        "total_hero_traits": total_hero_traits,
-        "total_hero_turbo": total_hero_turbo,
-        "hero_upgrades_total": hero_upgrades_total
     }), 200
 
+@app.route("/chart-data", methods=["POST"])
+def chart_data():
+    payload = request.get_json(silent=True) or {}
+    selected = payload.get("selected_icons", [])
+
+    # Example: compute something from selections
+    # (Replace with your real logic)
+    # We'll produce two series:
+    #   - squaddie_levels: cumulative level per selection order
+    #   - hero_upgrades: sum(powers+traits+turbo) per hero selection
+    x = []
+    squaddie_levels = []
+    hero_upgrades = []
+
+    cum_sq = 0
+    for idx, item in enumerate(selected, start=1):
+        x.append(idx)
+        if item.get("panel") == "squaddies" and isinstance(item.get("level"), int):
+            cum_sq += item["level"]
+        squaddie_levels.append(cum_sq)
+
+        if item.get("panel") == "heroes":
+            p = item.get("powers") or 0
+            t = item.get("traits") or 0
+            u = item.get("turbo")  or 0
+            hero_upgrades.append(p + t + u)
+        else:
+            hero_upgrades.append(0)
+
+    return jsonify({
+        "x": x,
+        "squaddie_levels": squaddie_levels,
+        "hero_upgrades": hero_upgrades
+    })
 
 
 

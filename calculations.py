@@ -7,8 +7,8 @@ Kept identical to your current behavior, plus extra totals.
 from typing import List, Dict, Any
 
 def compute_metrics(valid_selection: List[Dict[str, Any]]) -> Dict[str, int]:
-    total_squaddie_levels = sum(i['level'] for i in valid_selection if i['panel'] == 'squaddies')
-    hero_count            = sum(1 for i in valid_selection if i['panel'] == 'heroes')
+    total_squaddie_levels = sum(i['level'] for i in valid_selection if i['panel'] == 'squaddies') # this variable will be the new dps
+    hero_count            = sum(1 for i in valid_selection if i['panel'] == 'heroes')             # this variable will be the new total health 
 
     total_hero_powers = sum(i['powers'] for i in valid_selection if i['panel'] == 'heroes')
     total_hero_traits = sum(i['traits'] for i in valid_selection if i['panel'] == 'heroes')

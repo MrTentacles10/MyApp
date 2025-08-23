@@ -151,6 +151,9 @@
 	  Hero Count: 0 <br>
 	  Score: 0
 	</div>
+	
+	<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+	<div id="livePlot" style="max-width:900px;height:420px;margin:16px 20px;"></div>
 
 
   <script>
@@ -268,10 +271,52 @@
 		  Hero Count: ${data.hero_count} <br>
 		  Score: ${data.score}
 	    `;
+		updateChart();
 	  })
 	.catch(error => console.error("Error updating selection:", error));
 
 	  updateIconStyles();
+	}
+	
+	function initPlot() {
+	  const layout = {
+		title: "Selections Overview",
+		xaxis: { title: "Selection #" },
+		yaxis: { title: "Value" },
+		margin: { t: 40 }
+	  };
+	  const data = [
+		{ x: [], y: [], name: "Cumulative Squaddie Levels", mode: "lines+markers", type: "scatter" },
+		{ x: [], y: [], name: "Hero Upgrades Total (P+T+Turbo)", mode: "lines+markers", type: "scatter" },
+		{ x: [], y: [], name: "Score", yaxis: "y2", mode: "lines", type: "scatter" }
+	  ];
+	  layout.yaxis2 = { overlaying: "y", side: "right", title: "Score" };
+	  Plotly.newPlot("livePlot", data, layout, { responsive: true });
+	}
+	window.addEventListener("load", initPlot);
+	function updateChart() {
+	  fetch("/chart-data", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ selected_icons: selectedIcons })
+	  })
+	  .then(r => r.json())
+	  .then(d => {
+		const traces = [
+		  { x: d.x, y: d.squaddie_levels, name: "Cumulative Squaddie Levels", mode: "lines+markers", type: "scatter" },
+		  { x: d.x, y: d.hero_upgrades_total, name: "Hero Upgrades Total (P+T+Turbo)", mode: "lines+markers", type: "scatter" },
+		  { x: d.x, y: d.score, name: "Score", yaxis: "y2", mode: "lines", type: "scatter" }
+		];
+		const layout = {
+		  title: "Selections Overview",
+		  xaxis: { title: "Selection #" },
+		  yaxis: { title: "Value" },
+		  yaxis2: { overlaying: "y", side: "right", title: "Score" },
+		  margin: { t: 40 }
+		};
+		Plotly.react("livePlot", traces, layout);
+	  })
+	  .catch(err => console.error("chart-data error:", err));
 	}
 
 
