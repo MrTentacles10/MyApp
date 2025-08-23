@@ -1,10 +1,10 @@
 from flask import Flask, render_template, request, jsonify
 import os
+#import plotly.express as px this line is breaking code
 
 # My Script Imports
 from selection_validation import validate_selected_icons
 from calculations import compute_metrics
-import plotly.express as px
 
 app = Flask(__name__)
 
@@ -54,35 +54,33 @@ def chart_data():
     payload = request.get_json(silent=True) or {}
     selected = payload.get("selected_icons", [])
 
-    # Example: compute something from selections
-    # (Replace with your real logic)
-    # We'll produce two series:
-    #   - squaddie_levels: cumulative level per selection order
-    #   - hero_upgrades: sum(powers+traits+turbo) per hero selection
-    x = []
-    squaddie_levels = []
-    hero_upgrades = []
+    # Build a time series using your existing logic on each prefix of selections
+    xs = []
+    squaddie_levels_series = []
+    hero_upgrades_total_series = []
+    score_series = []
 
-    cum_sq = 0
-    for idx, item in enumerate(selected, start=1):
-        x.append(idx)
-        if item.get("panel") == "squaddies" and isinstance(item.get("level"), int):
-            cum_sq += item["level"]
-        squaddie_levels.append(cum_sq)
+    for i in range(1, len(selected) + 1):
+        prefix = selected[:i]
+        valid = validate_selected_icons(prefix)
+        metrics = compute_metrics(valid)  # your existing totals/score
 
-        if item.get("panel") == "heroes":
-            p = item.get("powers") or 0
-            t = item.get("traits") or 0
-            u = item.get("turbo")  or 0
-            hero_upgrades.append(p + t + u)
-        else:
-            hero_upgrades.append(0)
+        xs.append(i)
+        squaddie_levels_series.append(metrics["total_squaddie_levels"])
+        hero_upgrades_total_series.append(metrics["hero_upgrades_total"])  # powers+traits+turbo
+        score_series.append(metrics["score"])
+
+    # Also return the latest snapshot in case you want it for debugging/UI
+    latest_valid = validate_selected_icons(selected)
+    latest_metrics = compute_metrics(latest_valid)
 
     return jsonify({
-        "x": x,
-        "squaddie_levels": squaddie_levels,
-        "hero_upgrades": hero_upgrades
-    })
+        "x": xs,
+        "squaddie_levels": squaddie_levels_series,
+        "hero_upgrades_total": hero_upgrades_total_series,
+        "score": score_series,
+        "latest_metrics": latest_metrics
+    }), 200
 
 
 
