@@ -12,6 +12,10 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    # code to check where the stupid plot is still coming from!
+    src, filename, uptodate = app.jinja_loader.get_source(app.jinja_env, 'index.html')
+    print("USING TEMPLATE FILE:", filename)
+    
     squaddie_icons = [
     "Barbarian", "Greg", "Colt", "El Primo", "Shelly", "Chicken", "Trader", "Goblin",
     "Mavis", "Heavy", "Poco", "Bo", "Archer", "Nita", "Medic", "Dynamike", "Hog Rider",
