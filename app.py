@@ -49,39 +49,6 @@ def update_selection():
         "message": "Selections processed successfully",
     }), 200
 
-@app.route("/chart-data", methods=["POST"])
-def chart_data():
-    payload = request.get_json(silent=True) or {}
-    selected = payload.get("selected_icons", [])
-
-    # Build a time series using your existing logic on each prefix of selections
-    xs = []
-    squaddie_levels_series = []
-    hero_upgrades_total_series = []
-    score_series = []
-
-    for i in range(1, len(selected) + 1):
-        prefix = selected[:i]
-        valid = validate_selected_icons(prefix)
-        metrics = compute_metrics(valid)  # your existing totals/score
-
-        xs.append(i)
-        squaddie_levels_series.append(metrics["total_squaddie_levels"])
-        hero_upgrades_total_series.append(metrics["hero_upgrades_total"])  # powers+traits+turbo
-        score_series.append(metrics["score"])
-
-    # Also return the latest snapshot in case you want it for debugging/UI
-    latest_valid = validate_selected_icons(selected)
-    latest_metrics = compute_metrics(latest_valid)
-
-    return jsonify({
-        "x": xs,
-        "squaddie_levels": squaddie_levels_series,
-        "hero_upgrades_total": hero_upgrades_total_series,
-        "score": score_series,
-        "latest_metrics": latest_metrics
-    }), 200
-
 
 
 if __name__ == "__main__":

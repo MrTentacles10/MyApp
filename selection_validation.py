@@ -14,6 +14,7 @@ def validate_selected_icons(selected_icons: List[Dict[str, Any]]) -> List[Dict[s
         panel = icon.get('panel')
         if not name or not panel:
             continue
+        # else: ignore if not name or panel... for now
 
         if panel == 'squaddies':
             level = icon.get('level')
