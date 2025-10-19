@@ -8,6 +8,8 @@ from calculations import compute_metrics
 
 app = Flask(__name__)
 
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     squaddie_icons = [
@@ -53,4 +55,4 @@ def update_selection():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True, host="0.0.0.0", port=port)
