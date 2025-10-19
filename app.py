@@ -12,9 +12,6 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    # code to check where the stupid plot is still coming from!
-    src, filename, uptodate = app.jinja_loader.get_source(app.jinja_env, 'index.html')
-    print("USING TEMPLATE FILE:", filename)
     
     squaddie_icons = [
     "Barbarian", "Greg", "Colt", "El Primo", "Shelly", "Chicken", "Trader", "Goblin",
@@ -38,7 +35,13 @@ def process():
 @app.route('/update_selection', methods=['POST'])
 def update_selection():
     data = request.get_json(silent=True) or {}
+    
+    print("\n=== RAW JSON FROM FRONTEND ===")
+    print(data)
+    print("==============================")
+    
     selected_icons = data.get('selected_icons', [])
+    print("Selected Icons Parsed:", selected_icons)
     
     # Validate selections 
     valid_selection = validate_selected_icons(selected_icons)
